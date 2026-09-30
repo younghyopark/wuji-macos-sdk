@@ -1,0 +1,12 @@
+.artifacts/
+.cache/
+.venv/
+.venv-verify/
+.toolchains/
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.py[cod]
+.DS_Store
+.state/

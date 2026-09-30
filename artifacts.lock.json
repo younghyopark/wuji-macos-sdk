@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "artifacts": {
+    "cli-macos-arm64": {
+      "filename": "wuji_2026.9.22_aarch64-apple-darwin.tar.gz",
+      "url": "https://github.com/wuji-technology/wuji-cli/releases/download/v2026.9.22/wuji_2026.9.22_aarch64-apple-darwin.tar.gz",
+      "sha256": "259953ce38fb21dfa488a521296bd3ab9499816fb50ec7d75999de373bdfabda",
+      "version": "2026.9.22",
+      "source": "https://api.github.com/repos/wuji-technology/wuji-cli/releases/tags/v2026.9.22"
+    },
+    "sdk-c-linux-arm64": {
+      "filename": "wuji-sdk-c-2026.8.31-aarch64-linux-gnu.tar.gz",
+      "url": "https://github.com/wuji-technology/wuji-sdk/releases/download/v2026.8.31/wuji-sdk-c-2026.8.31-aarch64-linux-gnu.tar.gz",
+      "sha256": "efa4b1c86f2733aca0ab0bec9e4c1118f4b226b95cc3e9a6ccd1cba76f74e4c3",
+      "version": "2026.8.31",
+      "source": "https://github.com/wuji-technology/wuji-sdk/releases/tag/v2026.8.31"
+    },
+    "eclipse-zenoh-macos-fixture": {
+      "filename": "eclipse_zenoh-1.9.0-cp39-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl",
+      "url": "https://files.pythonhosted.org/packages/05/c5/ee0815c7ec49c5a29307cd935478305159bb3f0b2489f8c54fc6db3fdf36/eclipse_zenoh-1.9.0-cp39-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl",
+      "sha256": "6f66059b12e1ec53c70bc25192b0e74502751759064726dbb153ed6dd8f4dc8b",
+      "version": "1.9.0",
+      "source": "https://pypi.org/pypi/eclipse-zenoh/1.9.0/json",
+      "purpose": "localhost test peer only; not an SDK runtime dependency"
+    },
+    "sdk-python-linux-arm64": {
+      "filename": "wuji_sdk-2026.8.31-cp312-cp312-manylinux_2_34_aarch64.whl",
+      "url": "https://files.pythonhosted.org/packages/df/51/f6a1c352ddd8308b0ab82f15f31b64c9dd736b4f742993198043e814086a/wuji_sdk-2026.8.31-cp312-cp312-manylinux_2_34_aarch64.whl",
+      "sha256": "117718e3f6f798359bf378fc5bfebd8c8367f75f40df7231e5c29a0286751bf8",
+      "version": "2026.8.31",
+      "source": "https://pypi.org/pypi/wuji-sdk/2026.8.31/json"
+    }
+  }
+}

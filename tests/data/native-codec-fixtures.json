@@ -1,0 +1,242 @@
+[
+  {
+    "schema_id": 280,
+    "type": "wuji.MitParams",
+    "value": {
+      "joints": [
+        {
+          "kp": 10.0,
+          "kd": 0.5
+        },
+        {
+          "kp": 20.0,
+          "kd": 1.0
+        }
+      ]
+    },
+    "postcard_hex": "02000020410000003f0000a0410000803f",
+    "native_roundtrip": true
+  },
+  {
+    "schema_id": 324,
+    "type": "wuji.EffortLimitVec",
+    "value": {
+      "joints": [
+        0.5,
+        1.25,
+        -0.25
+      ]
+    },
+    "postcard_hex": "030000003f0000a03f000080be",
+    "native_roundtrip": true
+  },
+  {
+    "schema_id": 325,
+    "type": "wuji.ControlModeVec",
+    "value": {
+      "joints": [
+        0,
+        1,
+        2,
+        255
+      ]
+    },
+    "postcard_hex": "04000102ff",
+    "native_roundtrip": true
+  },
+  {
+    "schema_id": 315,
+    "type": "wuji.JointCommandFrame",
+    "value": {
+      "seq": 300,
+      "joints": [
+        {
+          "position": -2.5,
+          "velocity": -2.375,
+          "effort": -2.25
+        },
+        {
+          "position": -2.25,
+          "velocity": -2.125,
+          "effort": -2.0
+        },
+        {
+          "position": -2.0,
+          "velocity": -1.875,
+          "effort": -1.75
+        },
+        {
+          "position": -1.75,
+          "velocity": -1.625,
+          "effort": -1.5
+        },
+        {
+          "position": -1.5,
+          "velocity": -1.375,
+          "effort": -1.25
+        },
+        {
+          "position": -1.25,
+          "velocity": -1.125,
+          "effort": -1.0
+        },
+        {
+          "position": -1.0,
+          "velocity": -0.875,
+          "effort": -0.75
+        },
+        {
+          "position": -0.75,
+          "velocity": -0.625,
+          "effort": -0.5
+        },
+        {
+          "position": -0.5,
+          "velocity": -0.375,
+          "effort": -0.25
+        },
+        {
+          "position": -0.25,
+          "velocity": -0.125,
+          "effort": 0.0
+        },
+        {
+          "position": 0.0,
+          "velocity": 0.125,
+          "effort": 0.25
+        },
+        {
+          "position": 0.25,
+          "velocity": 0.375,
+          "effort": 0.5
+        },
+        {
+          "position": 0.5,
+          "velocity": 0.625,
+          "effort": 0.75
+        },
+        {
+          "position": 0.75,
+          "velocity": 0.875,
+          "effort": 1.0
+        },
+        {
+          "position": 1.0,
+          "velocity": 1.125,
+          "effort": 1.25
+        },
+        {
+          "position": 1.25,
+          "velocity": 1.375,
+          "effort": 1.5
+        },
+        {
+          "position": 1.5,
+          "velocity": 1.625,
+          "effort": 1.75
+        },
+        {
+          "position": 1.75,
+          "velocity": 1.875,
+          "effort": 2.0
+        },
+        {
+          "position": 2.0,
+          "velocity": 2.125,
+          "effort": 2.25
+        },
+        {
+          "position": 2.25,
+          "velocity": 2.375,
+          "effort": 2.5
+        }
+      ]
+    },
+    "postcard_hex": "ac02000020c0000018c0000010c0000010c0000008c0000000c0000000c00000f0bf0000e0bf0000e0bf0000d0bf0000c0bf0000c0bf0000b0bf0000a0bf0000a0bf000090bf000080bf000080bf000060bf000040bf000040bf000020bf000000bf000000bf0000c0be000080be000080be000000be00000000000000000000003e0000803e0000803e0000c03e0000003f0000003f0000203f0000403f0000403f0000603f0000803f0000803f0000903f0000a03f0000a03f0000b03f0000c03f0000c03f0000d03f0000e03f0000e03f0000f03f00000040000000400000084000001040000010400000184000002040",
+    "native_json_and_postcard": true
+  },
+  {
+    "schema_id": 330,
+    "type": "wuji.JointStateFrame",
+    "value": {
+      "header": {
+        "seq": 300,
+        "timestamp_us": 1234567890123,
+        "frame_id": "hand2\"\nbase"
+      },
+      "num_joints": 2,
+      "joints": [
+        {
+          "nid": 0,
+          "position": 0.25,
+          "velocity": -1.5,
+          "effort": 2.75
+        },
+        {
+          "nid": 23,
+          "position": -0.5,
+          "velocity": 3.25,
+          "effort": -4.5
+        }
+      ]
+    },
+    "postcard_hex": "ac02cb89ec8ff7230b68616e6432220a626173650202000000803e0000c0bf0000304017000000bf00005040000090c0",
+    "native_postcard_serializer": "image+0xa6a1d0"
+  },
+  {
+    "schema_id": 291,
+    "type": "wuji.RealtimeStreamFrame",
+    "value": {
+      "header": {
+        "seq": 300,
+        "timestamp_us": 1234567890123,
+        "frame_id": "hand2\"\nbase"
+      },
+      "num_joints": 2,
+      "joints": [
+        {
+          "nid": 0,
+          "status_word": 129,
+          "pos_rad_jnt_fb": 0.25,
+          "vel_rad_s_jnt_fb": -1.5,
+          "effort": 2.75,
+          "current": 0.5,
+          "vbus_v_fb": 24.5,
+          "mcu_temp_c_fb": 31.25,
+          "error_code_current": 257
+        },
+        {
+          "nid": 23,
+          "status_word": 32769,
+          "pos_rad_jnt_fb": -0.5,
+          "vel_rad_s_jnt_fb": 3.25,
+          "effort": -4.5,
+          "current": 0.75,
+          "vbus_v_fb": 25.25,
+          "mcu_temp_c_fb": 30.5,
+          "error_code_current": 513
+        }
+      ]
+    },
+    "postcard_hex": "ac02cb89ec8ff7230b68616e6432220a6261736502020081010000803e0000c0bf000030400000003f0000c4410000fa41810217818002000000bf00005040000090c00000403f0000ca410000f4418104",
+    "native_postcard_deserializer": "image+0xa9b3d0"
+  },
+  {
+    "schema_id": 334,
+    "type": "wuji.FingertipSensorInfo",
+    "value": {
+      "header": {
+        "seq": 300,
+        "timestamp_us": 1234567890123,
+        "frame_id": "hand2\"\nbase"
+      },
+      "digest": 12345,
+      "model": "Wuji \"tip\"",
+      "device_type": 345,
+      "rate_hz": 123.5,
+      "format": "{\"kind\":\"test\"}"
+    },
+    "postcard_hex": "ac02cb89ec8ff7230b68616e6432220a62617365b9600a57756a69202274697022d9020000f7420f7b226b696e64223a2274657374227d",
+    "native_postcard_deserializer": "image+0xa9b37c"
+  }
+]

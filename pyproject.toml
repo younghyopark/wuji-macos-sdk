@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wuji-macos"
+version = "0.1.0.dev0"
+description = "Experimental Apple Silicon access to pinned WUJI native SDK components"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[project.urls]
+Repository = "https://github.com/younghyopark/wuji-macos-sdk"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+wuji_macos = ["_lib/*.dylib", "_lib/backend.json"]

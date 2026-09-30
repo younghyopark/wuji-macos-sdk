@@ -1,0 +1,40 @@
+{
+  "repository": "https://github.com/wuji-technology/wuji-sdk",
+  "commit": "9db1fe521af94c011ac18cc1a88635dd0338d585",
+  "files": {
+    "examples/python/README.md": "40397505ed341dfc09b5faded13bba7efcfbfe526c4a0c95fc4d90a96fda82aa",
+    "examples/python/retargeting/0.retarget_session.py": "e5037129c82694b1a2204252de75fd3986eaa57d82a7cd516616570f0cb4a5e6",
+    "examples/python/retargeting/1.teleop_real.py": "f4f46a72182574d950c81aa5bcd62dfefbac0943649594bdf662e76d5f68e089",
+    "examples/python/wuji_glove/0.subscribe_callback.py": "5c3b7b5f85f24b4ea10f4d12b1dbf1b6e772eedffc06844e277c7aad83d23688",
+    "examples/python/wuji_glove/1.subscribe_async.py": "31c282f9621909b6ff337768b222be18d8a19f1a3ab0639b8a9c6fb451100e66",
+    "examples/python/wuji_glove/2.recording.py": "3cdee33baaa9eff9134336d6bc87583ffeda22886251a3f582ece86b146eeb64",
+    "examples/python/wuji_glove/3.offline_pipeline.py": "e5a1d46e62df9564fd5f8bcc74d4223cb6d0ebaf0d407ae70d3ae0e466ac11fd",
+    "examples/python/wuji_glove/4.user.py": "40284f560e2dce24fd13d933294285ccc36e95077e48dc7c650c2628c078bf43",
+    "examples/python/wuji_glove/5.calibration.py": "8f182ff85d7ef2d44d5b91b508d7f930192a9cb77e8e8b46d5a178018908e3a4",
+    "examples/python/wuji_glove/6.set_stream_rate.py": "725c8de8cef2ae57995332bb3da1b652556a00736238dad938b300adc905ca47",
+    "examples/python/wuji_glove/7.tactile_calibration.py": "48461318cd7a3039bcdf9a6c5b5496ec42c5d3e58cc31f36730e543a4d4a651d",
+    "examples/python/wuji_glove/8.tactile_contact_view.py": "1be4b7d187e433a3bade9c11d8b45a0b4b43a4ab8d09792f2562504cc073eb93",
+    "examples/python/wuji_glove/9.tactile_residual_view.py": "8ca4288cb6d488630e6f955eb12602243b4cd83708968ebcfa034c06f857cea6",
+    "examples/python/wuji_hand/0.subscribe.py": "877c842be91bccaef541f16ae3db31bb80626beacbb3dfd604765f0ded36f6b4",
+    "examples/python/wuji_hand/1.publish.py": "820b060443766b90a5bcc0f7ae8c7276dc85d36b77d530e32bd4c86b17e59ef9",
+    "examples/python/wuji_hand/2.grasp_loop.py": "3fa50f7998ad1c6bf4aa5c495330e2fa747d6c70b4f13cb7f976fe6df57120f0",
+    "examples/python/wuji_hand/3.tactile_status.py": "4ca85f3681dd3419695d5280be64602d0db30fdf529427be93b62e87144a4396",
+    "examples/python/wuji_hand_2/0.subscribe_callback.py": "86ac25110d34f19b6a7bbe7c984719facfde5074ce20fa4da219618f5841232e",
+    "examples/python/wuji_hand_2/1.subscribe_async.py": "3251c0677233618cc0eb877862305c74dc29fde135d3e6bc10f4983ae42c84c0",
+    "examples/python/wuji_hand_2/2.publish.py": "35d35085883cec4719f123a1b91b6de2932377702ed803ffac57b6a2ae300ec7",
+    "examples/python/wuji_hand_2/3.fingertip_typed.py": "66c4648bf361b31671377db6c450a9460ede8d22bff5c8a0ecff9d879bf031b9",
+    "examples/python/wuji_hand_2/4.set_stream_rate.py": "3d4af0a19414fc14ad998cd052c1d77143216230da449442195b004c287efe65",
+    "examples/python/wuji_hand_2/5.export_flash_logs.py": "81c58cf79bda83c6b42360c76ff4245b9d5348a4c50d57f73bafd777ee722577",
+    "examples/python/wuji_hand_2/6_opposition/data/left.replay": "696784c4a64c204a50b10919c9671b44844de6b3f8349819af8350e44403c32e",
+    "examples/python/wuji_hand_2/6_opposition/data/right.replay": "fcbbebd96c0080a141b96ebaaf3ce7107816cd1bc0a7152f277879a796ce23cb",
+    "examples/python/wuji_hand_2/6_opposition/opposition.py": "7885f10467945638828002ef6cd7dfe5686b0e8eded156487599a183105cfdfd",
+    "examples/python/wuji_hand_2/7.mit_sweep.py": "10c61baef6713b5a3e996a1f66e3f74785e2a927beecb7c3467ce33f8e037cec"
+  },
+  "local_modifications": {
+    "examples/python/wuji_hand_2/6_opposition/opposition.py": {
+      "sha256": "0604de43aef58f3412d7c679555ba3aa125aef37305fb892b8fe57350852b435",
+      "upstream_snapshot": "examples/upstream_sources/opposition.py",
+      "reason": "Use monotonic 1ms deadlines, account for send time, and report cadence after cleanup."
+    }
+  }
+}

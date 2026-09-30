@@ -1,0 +1,635 @@
+[
+  {
+    "schema_id": 261,
+    "type": "wuji.ImuData",
+    "value": {
+      "header": {
+        "seq": 300,
+        "timestamp_us": 1234567890123,
+        "frame_id": "hand2\"\nbase"
+      },
+      "orientation": {
+        "x": 0.125,
+        "y": -0.25,
+        "z": 0.5,
+        "w": -1.0
+      },
+      "orientation_covariance": [
+        0.25,
+        -0.5,
+        0.75,
+        -1.0,
+        1.25,
+        -1.5,
+        1.75,
+        -2.0,
+        2.25
+      ],
+      "angular_velocity": {
+        "x": 1.25,
+        "y": -2.5,
+        "z": 3.75
+      },
+      "angular_velocity_covariance": [
+        0.125,
+        -0.25,
+        0.375,
+        -0.5,
+        0.625,
+        -0.75,
+        0.875,
+        -1.0,
+        1.125
+      ],
+      "linear_acceleration": {
+        "x": -4.25,
+        "y": 5.5,
+        "z": -6.75
+      },
+      "linear_acceleration_covariance": [
+        0.0625,
+        -0.125,
+        0.1875,
+        -0.25,
+        0.3125,
+        -0.375,
+        0.4375,
+        -0.5,
+        0.5625
+      ]
+    },
+    "postcard_hex": "ac02cb89ec8ff7230b68616e6432220a62617365000000000000c03f000000000000d0bf000000000000e03f000000000000f0bf000000000000d03f000000000000e0bf000000000000e83f000000000000f0bf000000000000f43f000000000000f8bf000000000000fc3f00000000000000c00000000000000240000000000000f43f00000000000004c00000000000000e40000000000000c03f000000000000d0bf000000000000d83f000000000000e0bf000000000000e43f000000000000e8bf000000000000ec3f000000000000f0bf000000000000f23f00000000000011c000000000000016400000000000001bc0000000000000b03f000000000000c0bf000000000000c83f000000000000d0bf000000000000d43f000000000000d8bf000000000000dc3f000000000000e0bf000000000000e23f",
+    "native_serializer": "0xafaa10",
+    "native_roundtrip": false,
+    "oracle_source": "scripts/probe_schema_oracles.py"
+  },
+  {
+    "schema_id": 332,
+    "type": "wuji.JointDiagnosticsFrame",
+    "value": {
+      "header": {
+        "seq": 300,
+        "timestamp_us": 1234567890123,
+        "frame_id": "hand2\"\nbase"
+      },
+      "num_joints": 2,
+      "joints": [
+        {
+          "nid": 0,
+          "status_word": 305419896,
+          "current": -0.25,
+          "vbus_v_fb": 24.5,
+          "mcu_temp_c_fb": 37.75,
+          "error_code_current": 300,
+          "comm_response_rate_pct": 97,
+          "comm_timeout_total": 123456
+        },
+        {
+          "nid": 23,
+          "status_word": 2271560481,
+          "current": 1.5,
+          "vbus_v_fb": 23.25,
+          "mcu_temp_c_fb": -12.5,
+          "error_code_current": 65535,
+          "comm_response_rate_pct": 83,
+          "comm_timeout_total": 654321
+        }
+      ],
+      "comm": {
+        "age_ms": 300,
+        "tactile_online_mask": 21,
+        "e2e_received": 123456,
+        "e2e_lost": 1234,
+        "e2e_reordered": 17,
+        "e2e_duplicates": 19,
+        "e2e_window_loss_x100": 321,
+        "rpc_total": 654321,
+        "rpc_retries": 23,
+        "rpc_timeouts": 29,
+        "comm_get_failures": 31,
+        "tactile_response_rate_pct": [
+          91,
+          92,
+          93,
+          94,
+          95
+        ],
+        "tactile_timeout_total": [
+          128,
+          257,
+          513,
+          1025,
+          2049
+        ],
+        "sdk_dropped": 65537
+      }
+    },
+    "postcard_hex": "ac02cb89ec8ff7230b68616e6432220a62617365020200f8acd19101000080be0000c44100001742ac0261c0c40717a18695bb080000c03f0000ba41000048c1ffff0353f1f727ac0215c0c407d2091113c102f1f727171d1f5b5c5d5e5f80018102810481088110818004",
+    "native_serializer": "0xa6a390",
+    "native_roundtrip": false,
+    "oracle_source": "scripts/probe_schema_oracles.py"
+  },
+  {
+    "schema_id": 282,
+    "type": "wuji.HandCommunicationDiagnostics",
+    "value": {
+      "fingers": [
+        {
+          "tx_frame_total": 1001,
+          "rx_frame_total": 1002,
+          "tx_byte_total": 1003,
+          "rx_byte_total": 1004,
+          "crc_error_total": 1005,
+          "frame_format_error_total": 1006,
+          "uart_hw_error_total": 1007,
+          "tx_frame_per_sec": 1008,
+          "rx_frame_per_sec": 1009,
+          "tx_kbps": 1010,
+          "rx_kbps": 1011,
+          "error_per_sec": 1012,
+          "transfer_stats": [
+            {
+              "tx_total": 1020,
+              "timeout_total": 1030,
+              "tx_per_sec": 1040,
+              "timeout_rate_pct": 10
+            },
+            {
+              "tx_total": 1021,
+              "timeout_total": 1031,
+              "tx_per_sec": 1041,
+              "timeout_rate_pct": 11
+            },
+            {
+              "tx_total": 1022,
+              "timeout_total": 1032,
+              "tx_per_sec": 1042,
+              "timeout_rate_pct": 12
+            },
+            {
+              "tx_total": 1023,
+              "timeout_total": 1033,
+              "tx_per_sec": 1043,
+              "timeout_rate_pct": 13
+            },
+            {
+              "tx_total": 1024,
+              "timeout_total": 1034,
+              "tx_per_sec": 1044,
+              "timeout_rate_pct": 14
+            }
+          ],
+          "nodes": [
+            {
+              "node_type": 0,
+              "online": 0,
+              "ms_since_last_response": 1050,
+              "request_total": 1060,
+              "response_ok_total": 1070,
+              "timeout_total": 1080,
+              "response_rate_pct": 80,
+              "request_per_sec": 1090
+            },
+            {
+              "node_type": 1,
+              "online": 1,
+              "ms_since_last_response": 1051,
+              "request_total": 1061,
+              "response_ok_total": 1071,
+              "timeout_total": 1081,
+              "response_rate_pct": 81,
+              "request_per_sec": 1091
+            },
+            {
+              "node_type": 2,
+              "online": 0,
+              "ms_since_last_response": 1052,
+              "request_total": 1062,
+              "response_ok_total": 1072,
+              "timeout_total": 1082,
+              "response_rate_pct": 82,
+              "request_per_sec": 1092
+            },
+            {
+              "node_type": 3,
+              "online": 1,
+              "ms_since_last_response": 1053,
+              "request_total": 1063,
+              "response_ok_total": 1073,
+              "timeout_total": 1083,
+              "response_rate_pct": 83,
+              "request_per_sec": 1093
+            },
+            {
+              "node_type": 4,
+              "online": 0,
+              "ms_since_last_response": 1054,
+              "request_total": 1064,
+              "response_ok_total": 1074,
+              "timeout_total": 1084,
+              "response_rate_pct": 84,
+              "request_per_sec": 1094
+            }
+          ]
+        },
+        {
+          "tx_frame_total": 2001,
+          "rx_frame_total": 2002,
+          "tx_byte_total": 2003,
+          "rx_byte_total": 2004,
+          "crc_error_total": 2005,
+          "frame_format_error_total": 2006,
+          "uart_hw_error_total": 2007,
+          "tx_frame_per_sec": 2008,
+          "rx_frame_per_sec": 2009,
+          "tx_kbps": 2010,
+          "rx_kbps": 2011,
+          "error_per_sec": 2012,
+          "transfer_stats": [
+            {
+              "tx_total": 2020,
+              "timeout_total": 2030,
+              "tx_per_sec": 2040,
+              "timeout_rate_pct": 10
+            },
+            {
+              "tx_total": 2021,
+              "timeout_total": 2031,
+              "tx_per_sec": 2041,
+              "timeout_rate_pct": 11
+            },
+            {
+              "tx_total": 2022,
+              "timeout_total": 2032,
+              "tx_per_sec": 2042,
+              "timeout_rate_pct": 12
+            },
+            {
+              "tx_total": 2023,
+              "timeout_total": 2033,
+              "tx_per_sec": 2043,
+              "timeout_rate_pct": 13
+            },
+            {
+              "tx_total": 2024,
+              "timeout_total": 2034,
+              "tx_per_sec": 2044,
+              "timeout_rate_pct": 14
+            }
+          ],
+          "nodes": [
+            {
+              "node_type": 0,
+              "online": 1,
+              "ms_since_last_response": 2050,
+              "request_total": 2060,
+              "response_ok_total": 2070,
+              "timeout_total": 2080,
+              "response_rate_pct": 80,
+              "request_per_sec": 2090
+            },
+            {
+              "node_type": 1,
+              "online": 0,
+              "ms_since_last_response": 2051,
+              "request_total": 2061,
+              "response_ok_total": 2071,
+              "timeout_total": 2081,
+              "response_rate_pct": 81,
+              "request_per_sec": 2091
+            },
+            {
+              "node_type": 2,
+              "online": 1,
+              "ms_since_last_response": 2052,
+              "request_total": 2062,
+              "response_ok_total": 2072,
+              "timeout_total": 2082,
+              "response_rate_pct": 82,
+              "request_per_sec": 2092
+            },
+            {
+              "node_type": 3,
+              "online": 0,
+              "ms_since_last_response": 2053,
+              "request_total": 2063,
+              "response_ok_total": 2073,
+              "timeout_total": 2083,
+              "response_rate_pct": 83,
+              "request_per_sec": 2093
+            },
+            {
+              "node_type": 4,
+              "online": 1,
+              "ms_since_last_response": 2054,
+              "request_total": 2064,
+              "response_ok_total": 2074,
+              "timeout_total": 2084,
+              "response_rate_pct": 84,
+              "request_per_sec": 2094
+            }
+          ]
+        },
+        {
+          "tx_frame_total": 3001,
+          "rx_frame_total": 3002,
+          "tx_byte_total": 3003,
+          "rx_byte_total": 3004,
+          "crc_error_total": 3005,
+          "frame_format_error_total": 3006,
+          "uart_hw_error_total": 3007,
+          "tx_frame_per_sec": 3008,
+          "rx_frame_per_sec": 3009,
+          "tx_kbps": 3010,
+          "rx_kbps": 3011,
+          "error_per_sec": 3012,
+          "transfer_stats": [
+            {
+              "tx_total": 3020,
+              "timeout_total": 3030,
+              "tx_per_sec": 3040,
+              "timeout_rate_pct": 10
+            },
+            {
+              "tx_total": 3021,
+              "timeout_total": 3031,
+              "tx_per_sec": 3041,
+              "timeout_rate_pct": 11
+            },
+            {
+              "tx_total": 3022,
+              "timeout_total": 3032,
+              "tx_per_sec": 3042,
+              "timeout_rate_pct": 12
+            },
+            {
+              "tx_total": 3023,
+              "timeout_total": 3033,
+              "tx_per_sec": 3043,
+              "timeout_rate_pct": 13
+            },
+            {
+              "tx_total": 3024,
+              "timeout_total": 3034,
+              "tx_per_sec": 3044,
+              "timeout_rate_pct": 14
+            }
+          ],
+          "nodes": [
+            {
+              "node_type": 0,
+              "online": 0,
+              "ms_since_last_response": 3050,
+              "request_total": 3060,
+              "response_ok_total": 3070,
+              "timeout_total": 3080,
+              "response_rate_pct": 80,
+              "request_per_sec": 3090
+            },
+            {
+              "node_type": 1,
+              "online": 1,
+              "ms_since_last_response": 3051,
+              "request_total": 3061,
+              "response_ok_total": 3071,
+              "timeout_total": 3081,
+              "response_rate_pct": 81,
+              "request_per_sec": 3091
+            },
+            {
+              "node_type": 2,
+              "online": 0,
+              "ms_since_last_response": 3052,
+              "request_total": 3062,
+              "response_ok_total": 3072,
+              "timeout_total": 3082,
+              "response_rate_pct": 82,
+              "request_per_sec": 3092
+            },
+            {
+              "node_type": 3,
+              "online": 1,
+              "ms_since_last_response": 3053,
+              "request_total": 3063,
+              "response_ok_total": 3073,
+              "timeout_total": 3083,
+              "response_rate_pct": 83,
+              "request_per_sec": 3093
+            },
+            {
+              "node_type": 4,
+              "online": 0,
+              "ms_since_last_response": 3054,
+              "request_total": 3064,
+              "response_ok_total": 3074,
+              "timeout_total": 3084,
+              "response_rate_pct": 84,
+              "request_per_sec": 3094
+            }
+          ]
+        },
+        {
+          "tx_frame_total": 4001,
+          "rx_frame_total": 4002,
+          "tx_byte_total": 4003,
+          "rx_byte_total": 4004,
+          "crc_error_total": 4005,
+          "frame_format_error_total": 4006,
+          "uart_hw_error_total": 4007,
+          "tx_frame_per_sec": 4008,
+          "rx_frame_per_sec": 4009,
+          "tx_kbps": 4010,
+          "rx_kbps": 4011,
+          "error_per_sec": 4012,
+          "transfer_stats": [
+            {
+              "tx_total": 4020,
+              "timeout_total": 4030,
+              "tx_per_sec": 4040,
+              "timeout_rate_pct": 10
+            },
+            {
+              "tx_total": 4021,
+              "timeout_total": 4031,
+              "tx_per_sec": 4041,
+              "timeout_rate_pct": 11
+            },
+            {
+              "tx_total": 4022,
+              "timeout_total": 4032,
+              "tx_per_sec": 4042,
+              "timeout_rate_pct": 12
+            },
+            {
+              "tx_total": 4023,
+              "timeout_total": 4033,
+              "tx_per_sec": 4043,
+              "timeout_rate_pct": 13
+            },
+            {
+              "tx_total": 4024,
+              "timeout_total": 4034,
+              "tx_per_sec": 4044,
+              "timeout_rate_pct": 14
+            }
+          ],
+          "nodes": [
+            {
+              "node_type": 0,
+              "online": 1,
+              "ms_since_last_response": 4050,
+              "request_total": 4060,
+              "response_ok_total": 4070,
+              "timeout_total": 4080,
+              "response_rate_pct": 80,
+              "request_per_sec": 4090
+            },
+            {
+              "node_type": 1,
+              "online": 0,
+              "ms_since_last_response": 4051,
+              "request_total": 4061,
+              "response_ok_total": 4071,
+              "timeout_total": 4081,
+              "response_rate_pct": 81,
+              "request_per_sec": 4091
+            },
+            {
+              "node_type": 2,
+              "online": 1,
+              "ms_since_last_response": 4052,
+              "request_total": 4062,
+              "response_ok_total": 4072,
+              "timeout_total": 4082,
+              "response_rate_pct": 82,
+              "request_per_sec": 4092
+            },
+            {
+              "node_type": 3,
+              "online": 0,
+              "ms_since_last_response": 4053,
+              "request_total": 4063,
+              "response_ok_total": 4073,
+              "timeout_total": 4083,
+              "response_rate_pct": 83,
+              "request_per_sec": 4093
+            },
+            {
+              "node_type": 4,
+              "online": 1,
+              "ms_since_last_response": 4054,
+              "request_total": 4064,
+              "response_ok_total": 4074,
+              "timeout_total": 4084,
+              "response_rate_pct": 84,
+              "request_per_sec": 4094
+            }
+          ]
+        },
+        {
+          "tx_frame_total": 5001,
+          "rx_frame_total": 5002,
+          "tx_byte_total": 5003,
+          "rx_byte_total": 5004,
+          "crc_error_total": 5005,
+          "frame_format_error_total": 5006,
+          "uart_hw_error_total": 5007,
+          "tx_frame_per_sec": 5008,
+          "rx_frame_per_sec": 5009,
+          "tx_kbps": 5010,
+          "rx_kbps": 5011,
+          "error_per_sec": 5012,
+          "transfer_stats": [
+            {
+              "tx_total": 5020,
+              "timeout_total": 5030,
+              "tx_per_sec": 5040,
+              "timeout_rate_pct": 10
+            },
+            {
+              "tx_total": 5021,
+              "timeout_total": 5031,
+              "tx_per_sec": 5041,
+              "timeout_rate_pct": 11
+            },
+            {
+              "tx_total": 5022,
+              "timeout_total": 5032,
+              "tx_per_sec": 5042,
+              "timeout_rate_pct": 12
+            },
+            {
+              "tx_total": 5023,
+              "timeout_total": 5033,
+              "tx_per_sec": 5043,
+              "timeout_rate_pct": 13
+            },
+            {
+              "tx_total": 5024,
+              "timeout_total": 5034,
+              "tx_per_sec": 5044,
+              "timeout_rate_pct": 14
+            }
+          ],
+          "nodes": [
+            {
+              "node_type": 0,
+              "online": 0,
+              "ms_since_last_response": 5050,
+              "request_total": 5060,
+              "response_ok_total": 5070,
+              "timeout_total": 5080,
+              "response_rate_pct": 80,
+              "request_per_sec": 5090
+            },
+            {
+              "node_type": 1,
+              "online": 1,
+              "ms_since_last_response": 5051,
+              "request_total": 5061,
+              "response_ok_total": 5071,
+              "timeout_total": 5081,
+              "response_rate_pct": 81,
+              "request_per_sec": 5091
+            },
+            {
+              "node_type": 2,
+              "online": 0,
+              "ms_since_last_response": 5052,
+              "request_total": 5062,
+              "response_ok_total": 5072,
+              "timeout_total": 5082,
+              "response_rate_pct": 82,
+              "request_per_sec": 5092
+            },
+            {
+              "node_type": 3,
+              "online": 1,
+              "ms_since_last_response": 5053,
+              "request_total": 5063,
+              "response_ok_total": 5073,
+              "timeout_total": 5083,
+              "response_rate_pct": 83,
+              "request_per_sec": 5093
+            },
+            {
+              "node_type": 4,
+              "online": 0,
+              "ms_since_last_response": 5054,
+              "request_total": 5064,
+              "response_ok_total": 5074,
+              "timeout_total": 5084,
+              "response_rate_pct": 84,
+              "request_per_sec": 5094
+            }
+          ]
+        }
+      ]
+    },
+    "postcard_hex": "e907ea07eb07ec07ed07ee07ef07f007f107f207f307f407fc07860890080afd07870891080bfe07880892080cff07890893080d80088a0894080e00009a08a408ae08b80850c20801019b08a508af08b90851c30802009c08a608b008ba0852c40803019d08a708b108bb0853c50804009e08a808b208bc0854c608d10fd20fd30fd40fd50fd60fd70fd80fd90fda0fdb0fdc0fe40fee0ff80f0ae50fef0ff90f0be60ff00ffa0f0ce70ff10ffb0f0de80ff20ffc0f0e000182108c109610a01050aa10010083108d109710a11051ab10020184108e109810a21052ac10030085108f109910a31053ad100401861090109a10a41054ae10b917ba17bb17bc17bd17be17bf17c017c117c217c317c417cc17d617e0170acd17d717e1170bce17d817e2170ccf17d917e3170dd017da17e4170e0000ea17f417fe1788185092180101eb17f517ff1789185193180200ec17f61780188a185294180301ed17f71781188b185395180400ee17f81782188c18549618a11fa21fa31fa41fa51fa61fa71fa81fa91faa1fab1fac1fb41fbe1fc81f0ab51fbf1fc91f0bb61fc01fca1f0cb71fc11fcb1f0db81fc21fcc1f0e0001d21fdc1fe61ff01f50fa1f0100d31fdd1fe71ff11f51fb1f0201d41fde1fe81ff21f52fc1f0300d51fdf1fe91ff31f53fd1f0401d61fe01fea1ff41f54fe1f89278a278b278c278d278e278f27902791279227932794279c27a627b0270a9d27a727b1270b9e27a827b2270c9f27a927b3270da027aa27b4270e0000ba27c427ce27d82750e2270101bb27c527cf27d92751e3270200bc27c627d027da2752e4270301bd27c727d127db2753e5270400be27c827d227dc2754e627",
+    "native_parser": "0xa9b420",
+    "native_parser_field_oracle": true,
+    "native_roundtrip": false,
+    "oracle_source": "scripts/probe_schema_oracles.py"
+  }
+]

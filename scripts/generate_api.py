@@ -1,0 +1,693 @@
+#!/usr/bin/env python3
+"""Generate Python value models and an API inventory from the pinned SDK stub.
+
+This generates data models only. A name in the inventory is not evidence that
+the corresponding native operation has been implemented or hardware-tested.
+No upstream code is imported, and no device is accessed.
+"""
+from __future__ import annotations
+
+import argparse
+import ast
+import hashlib
+import json
+from pathlib import Path
+import pprint
+import zipfile
+
+ROOT = Path(__file__).resolve().parents[1]
+STUB_SHA256 = "10cd4fb8f366492e9b489bf9647306a355baaec36f5c0cd1656265572d09bcaa"
+SCHEMAS_SHA256 = "ab0425c4312710d7ee54693c70e89f5eb0b791bccaf730a40567b431f73265ab"
+# Internal transport structs omitted from the public Python stub. Field order
+# comes from the hash-pinned native Linux code, not sorted JSON properties.
+# This is static evidence, deliberately separate from executed Mac fixtures.
+STATIC_NATIVE_ORDER = {
+    336: {
+        "name": "FingertipInfoReq",
+        "fields": {"finger": "int", "offset": "int"},
+        "library_sha256": "5cebdbec82df966899cfbd8f8361c4faf60ea2f651f0bc520a3b4ffdfa8d79cf",
+        "evidence": "Linux ARM64 serializer 0x1e94dc: u8 at native +2, then u16 at +0",
+    },
+    337: {
+        "name": "FingertipInfoChunk",
+        "fields": {"finger": "int", "offset": "int", "total": "int", "chunk": "list[int]"},
+        "library_sha256": "5cebdbec82df966899cfbd8f8361c4faf60ea2f651f0bc520a3b4ffdfa8d79cf",
+        "evidence": "Linux ARM64 deserializer 0x1e9a34: u8, u16, u16, Vec<u8>",
+    },
+}
+NATIVE_FIXTURE_ORDER = {
+    290: {
+        "name": "RealtimeStreamEntry",
+        "fields": {"nid": "int", "status_word": "int", "pos_rad_jnt_fb": "float",
+                   "vel_rad_s_jnt_fb": "float", "effort": "float", "current": "float",
+                   "vbus_v_fb": "float", "mcu_temp_c_fb": "float", "error_code_current": "int"},
+        "artifact_sha256": "61fba3eb0cb32de58cf9098cab9ca9afe8b892ac21e64d2d96280b53490f6d50",
+        "evidence": "Mac parser image+0xa54910, nested fields verified by RealtimeStreamFrame fixture",
+    },
+    291: {
+        "name": "RealtimeStreamFrame",
+        "fields": {"header": "FrameHeader", "num_joints": "int", "joints": "list[RealtimeStreamEntry]"},
+        "artifact_sha256": "61fba3eb0cb32de58cf9098cab9ca9afe8b892ac21e64d2d96280b53490f6d50",
+        "evidence": "Mac parser image+0xa9b3d0 -> image+0xa54ad4, independent fields verified by native fixture",
+    },
+}
+NATIVE_VERIFIED_IDS = (261, 272, 280, 282, 290, 291, 314, 315, 324, 325, 329, 330, 331, 332, 334)
+ENUMS = {
+    # Explicit values, not declaration-order guesses. Device/side/model values
+    # are from the pinned C header; control/tactile values are also documented
+    # by ControlModeVec and the enum docstrings in the pinned Python stub.
+    "DeviceType": {"Unknown": 0, "WujiGlove": 1, "WujiHand2": 2, "WujiHand": 3},
+    "Handedness": {"Left": 0, "Right": 1},
+    "HandModel": {"WujiHand": 0, "WujiHand2": 1},
+    "ControlMode": {"Off": 0, "Mit": 1, "Position": 2, "Velocity": 3, "Current": 4},
+    "TactileType": {"Standard": 0, "Thumb": 1},
+    "TactileState": {"Ready": 0, "Calibrating": 1},
+}
+# The Python stub exposes named TransportType variants but no integer contract.
+# The C header uses Udp=0, Usb=1; that need not equal Python PyO3 discriminants.
+# Native Mac discovery also returns Zenoh/CppNative (TransportType::fmt at
+# image+0x9acc00). Keep all four native variants instead of limiting discovery
+# to the incomplete stub; unrecognized native values still fail explicitly.
+NAMED_ENUMS = {"TransportType": {
+    "Usb": "Usb", "Udp": "Udp", "Zenoh": "Zenoh", "CppNative": "CppNative",
+}}
+SPECIAL_VALUE_CLASSES = {"CalibrationReport"}
+NON_VALUE_CLASSES = {
+    "WujiDevice", "WujiGlove", "WujiHand", "WujiHand2", "SdkManager",
+    "Subscription", "CallbackSubscription", "Publisher", "RecordingHandle",
+    "MetricsStream", "StatusStream", "AlertStream", "TopicRecorder",
+    "WujiGloveOfflinePipeline", "WujiTactileGlove", "JointHandle", "FingerHandle",
+    "JointCommandPublisher", "RealtimeController", "WujiHandJointHandle",
+    "WujiHandFingerHandle", "RetargetSession",
+}
+LEN_FIELDS = {
+    "FingertipSensorData": "data", "FingertipPoses": "poses",
+    "HandJointAngles": "fingers", "HandSkeleton": "joints",
+    "MitParams": "joints", "ErrorLog": "entries", "JointState": "joints",
+    "JointStateFrame": "joints", "JointDiagnosticsFrame": "joints",
+    "TactileFrame": "data", "TactileRawFrame": "data", "TactileBinary": "data",
+    "TactileResidual": "data", "EmfPoseArray": "poses", "FrameTransforms": "transforms",
+    "TactileGloveFrame": "pressure", "Enc1CalibResultVec": "joints",
+    "Enc2CalibResultVec": "joints", "EffortLimitVec": "joints",
+    "ControlModeVec": "joints", "DiagnosticArray": "status",
+}
+
+PREAMBLE = '''\
+"""Generated Python value models for WUJI SDK 2026.8.31.
+
+Generated by scripts/generate_api.py from the hash-pinned official type stub.
+These are Python data models, not reconstructed PyO3 classes or device drivers.
+Only explicitly declared constructors are public. SDK-produced records are
+constructed internally with _from_native; missing measurements are not filled.
+"""
+from __future__ import annotations
+
+from enum import Enum, IntEnum
+from functools import lru_cache
+import operator
+from collections.abc import Mapping
+from types import MappingProxyType
+from typing import Any, Optional, List, Tuple, Literal, Union, TypedDict, TypeVar
+from typing import get_args, get_origin, get_type_hints, is_typeddict
+
+STUB_SHA256 = "{stub_sha}"
+
+
+class _NamedIntEnum(IntEnum):
+    def __str__(self):
+        return f"{{type(self).__name__}}.{{self.name}}"
+
+    def __repr__(self):
+        return str(self)
+
+
+class _NamedEnum(Enum):
+    def __str__(self):
+        return f"{{type(self).__name__}}.{{self.name}}"
+
+    def __repr__(self):
+        return str(self)
+
+
+class _Value:
+    __slots__ = ()
+
+    def __init__(self, *args, **kwargs):
+        raise TypeError(f"{{type(self).__name__}} has no public constructor in the pinned SDK stub")
+
+    def __repr__(self):
+        fields = ", ".join(f"{{name}}={{getattr(self, name)!r}}" for name in self.__slots__)
+        return f"{{type(self).__name__}}({{fields}})"
+
+
+@lru_cache(maxsize=None)
+def _cached_annotations(cls):
+    # Only successfully resolved, pinned SDK classes enter this cache.
+    # A missing forward reference must be retried when it becomes available.
+    return MappingProxyType(get_type_hints(cls, globals(), globals()))
+
+
+def _annotations(cls):
+    try:
+        if cls in _GENERATED_VALUE_TYPES:
+            return _cached_annotations(cls)
+        # User-defined classes may change their annotations dynamically.
+        return get_type_hints(cls, globals(), globals())
+    except NameError:
+        # Upstream's stub references CalibrationResult without declaring it.
+        # Preserve that payload instead of inventing a class/schema for it.
+        return {{name: annotation for name, annotation in cls.__annotations__.items()}}
+
+
+def _coerce(annotation, value):
+    if isinstance(annotation, str):
+        try:
+            annotation = eval(annotation, globals())
+        except NameError:
+            return value
+    if annotation is Any:
+        return value
+    origin, args = get_origin(annotation), get_args(annotation)
+    if origin is Union:
+        if value is None and type(None) in args:
+            return None
+        errors = []
+        for candidate in args:
+            if candidate is type(None):
+                continue
+            try:
+                return _coerce(candidate, value)
+            except (TypeError, ValueError) as error:
+                errors.append(str(error))
+        raise TypeError("value does not match the declared union: " + "; ".join(errors))
+    if origin is list:
+        if isinstance(value, (str, bytes, bytearray)):
+            if args == (int,) and isinstance(value, (bytes, bytearray)):
+                return list(value)
+            raise TypeError("expected a sequence, not text or raw bytes")
+        return [_coerce(args[0], item) for item in value]
+    if origin is tuple or annotation is tuple:
+        return tuple(value)
+    if origin is Literal:
+        if value not in args:
+            raise ValueError(f"expected one of {{args!r}}")
+        return value
+    if is_typeddict(annotation):
+        if not isinstance(value, Mapping):
+            raise TypeError("expected a mapping for a TypedDict")
+        return dict(value)
+    if isinstance(annotation, type) and issubclass(annotation, Enum):
+        if isinstance(value, annotation):
+            return value
+        if isinstance(value, str) and value.rsplit(".", 1)[-1] in annotation.__members__:
+            return annotation[value.rsplit(".", 1)[-1]]
+        return annotation(value)
+    if isinstance(annotation, type) and issubclass(annotation, _Value):
+        return _from_native(annotation, value)
+    if annotation is float:
+        if isinstance(value, (str, bytes, bytearray)):
+            raise TypeError("expected a real number")
+        return float(value)
+    if annotation is int:
+        return operator.index(value)
+    if annotation is bool:
+        if not isinstance(value, bool):
+            raise TypeError("expected bool")
+        return value
+    if annotation is str:
+        if not isinstance(value, str):
+            raise TypeError("expected str")
+        return value
+    return value
+
+
+def _init_fields(instance, values):
+    annotations = _annotations(type(instance))
+    expected = set(type(instance).__slots__)
+    if set(values) != expected:
+        missing, extra = expected - set(values), set(values) - expected
+        raise TypeError(f"{{type(instance).__name__}} field mismatch: missing={{sorted(missing)}}, extra={{sorted(extra)}}")
+    for name, value in values.items():
+        object.__setattr__(instance, name, _coerce(annotations.get(name, Any), value))
+
+
+def _from_native(value_type, values):
+    """Turn a decoded native mapping into the declared SDK value class.
+
+    This does no wire decoding. Callers must first verify a resource's native
+    schema and encoding. No defaults are supplied for absent telemetry fields.
+    """
+    cls = globals()[value_type] if isinstance(value_type, str) else value_type
+    if is_typeddict(cls):
+        if not isinstance(values, Mapping):
+            raise TypeError("expected a mapping for a TypedDict")
+        return dict(values)
+    if isinstance(values, cls):
+        return values
+    if isinstance(cls, type) and issubclass(cls, Enum):
+        return _coerce(cls, values)
+    if cls is CalibrationReport:
+        results = values["results"] if isinstance(values, Mapping) else values
+        result = object.__new__(cls)
+        result._outcomes = [_from_native(CalibrationOutcome, item) for item in results]
+        return result
+    if not isinstance(values, Mapping):
+        raise TypeError(f"{{cls.__name__}} requires a decoded mapping")
+    if not issubclass(cls, _Value):
+        return dict(values)
+    result = object.__new__(cls)
+    _init_fields(result, values)
+    return result
+
+
+def _to_native(value):
+    """Convert modeled values to plain Python data; this is not a wire codec."""
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, _Value):
+        return {{name: _to_native(getattr(value, name)) for name in value.__slots__}}
+    if isinstance(value, Mapping):
+        return {{name: _to_native(item) for name, item in value.items()}}
+    if isinstance(value, (list, tuple)):
+        return [_to_native(item) for item in value]
+    return value
+
+'''
+
+
+def read_stub(path=None):
+    if path:
+        data = Path(path).read_bytes()
+    else:
+        lock = json.loads((ROOT / "artifacts.lock.json").read_text())
+        entry = lock["artifacts"]["sdk-python-linux-arm64"]
+        wheel = ROOT / ".artifacts" / "sdk-python-linux-arm64" / entry["version"] / entry["filename"]
+        if hashlib.sha256(wheel.read_bytes()).hexdigest() != entry["sha256"]:
+            raise ValueError("Pinned Python wheel checksum mismatch")
+        with zipfile.ZipFile(wheel) as archive:
+            data = archive.read("wuji_sdk/__init__.pyi")
+    if hashlib.sha256(data).hexdigest() != STUB_SHA256:
+        raise ValueError("Unreviewed SDK type stub; update the pin only after an API audit")
+    return data.decode()
+
+
+def contract(source):
+    tree = ast.parse(source)
+    classes, aliases, functions = {}, {}, {}
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            item = classes.setdefault(node.name, {
+                "name": node.name, "source_lines": [], "attributes": {},
+                "properties": {}, "methods": {}, "bases": [], "docs": [], "nodes": [],
+            })
+            item["nodes"].append(node)
+            item["source_lines"].append(node.lineno)
+            item["bases"].extend(ast.unparse(base) for base in node.bases if ast.unparse(base) != node.name)
+            if ast.get_docstring(node):
+                item["docs"].append(ast.get_docstring(node))
+            for child in node.body:
+                if isinstance(child, ast.AnnAssign) and isinstance(child.target, ast.Name):
+                    item["attributes"][child.target.id] = ast.unparse(child.annotation)
+                elif isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    decorators = [ast.unparse(d) for d in child.decorator_list]
+                    signature = f"({ast.unparse(child.args)})"
+                    if child.returns:
+                        signature += " -> " + ast.unparse(child.returns)
+                    entry = {"signature": signature, "line": child.lineno,
+                             "async": isinstance(child, ast.AsyncFunctionDef), "decorators": decorators}
+                    if "property" in decorators:
+                        item["properties"][child.name] = ast.unparse(child.returns)
+                    item["methods"].setdefault(child.name, []).append(entry)
+        elif isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    aliases[target.id] = ast.unparse(node.value)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            functions[node.name] = {"line": node.lineno, "signature": f"({ast.unparse(node.args)})"}
+    return tree, classes, aliases, functions
+
+
+def classify(item):
+    name = item["name"]
+    if name in ENUMS or name in NAMED_ENUMS or name == "WujiHandProfile":
+        return "modeled_enum"
+    if "TypedDict" in item["bases"]:
+        return "typed_dictionary"
+    if name in {"WujiException", "NodeOfflineError"}:
+        return "exception"
+    if (name.endswith("Resource") and name != "Resource") or name in NON_VALUE_CLASSES:
+        return "native_facade_required"
+    if item["attributes"] or item["properties"] or name in SPECIAL_VALUE_CLASSES:
+        return "modeled_value"
+    return "native_facade_required"
+
+
+def generate_types(source):
+    tree, classes, aliases, functions = contract(source)
+    output = [PREAMBLE.format(stub_sha=STUB_SHA256)]
+    exported = []
+    for name, item in classes.items():
+        kind = classify(item)
+        if kind == "native_facade_required":
+            continue
+        exported.append(name)
+        if kind in {"typed_dictionary", "exception"} or name == "WujiHandProfile":
+            node = item["nodes"][0]
+            # Exact TypedDict key/total declaration. Exceptions are genuine
+            # exceptions, with no fake methods or successful fallback behavior.
+            if kind == "exception":
+                base = "Exception" if name == "WujiException" else "WujiException"
+                output.append(f"class {name}({base}):\n    pass\n")
+            else:
+                output.append(ast.unparse(node) + "\n")
+            continue
+        if kind == "modeled_enum":
+            members = ENUMS.get(name, NAMED_ENUMS.get(name))
+            base = "_NamedIntEnum" if name in ENUMS else "_NamedEnum"
+            body = [f"class {name}({base}):"]
+            body.extend(f"    {key} = {value!r}" for key, value in members.items())
+            output.append("\n".join(body) + "\n")
+            continue
+        fields = dict(item["attributes"])
+        fields.update(item["properties"])
+        fields.pop("ext_state_name", None)
+        if name == "CalibrationReport":
+            output.append('''class CalibrationReport(_Value):
+    __slots__ = ("_outcomes",)
+    _outcomes: list[CalibrationOutcome]
+
+    def results(self) -> List[CalibrationOutcome]:
+        return list(self._outcomes)
+
+    def finger_results(self, name: str) -> List[CalibrationOutcome]:
+        fingers = ("thumb", "index", "middle", "ring", "pinky")
+        if name not in fingers:
+            raise ValueError(f"Unknown finger: {name}")
+        if len(self._outcomes) != 20:
+            raise ValueError("A whole-hand calibration report must contain 20 outcomes")
+        index = fingers.index(name) * 4
+        return list(self._outcomes[index:index + 4])
+''')
+            continue
+        body = [f"class {name}(_Value):", f"    __slots__ = {tuple(fields)!r}"]
+        body.extend(f"    {key}: {annotation}" for key, annotation in fields.items())
+        ctor = next((child for node in reversed(item["nodes"]) for child in node.body
+                     if isinstance(child, ast.FunctionDef) and child.name == "__init__"), None)
+        if ctor:
+            body.append(f"\n    def __init__({ast.unparse(ctor.args)}) -> None:")
+            args = [a.arg for a in ctor.args.args + ctor.args.kwonlyargs if a.arg != "self"]
+            body.append("        _init_fields(self, {" + ", ".join(f"{key!r}: {key}" for key in args) + "})")
+            if name == "ConnectOptions":
+                body.extend([
+                    "        if self.timeout_ms < 0 or self.retry_count < 0:",
+                    "            raise ValueError('timeout_ms and retry_count must be nonnegative')",
+                    "        if self.auto_time_sync_interval_ms is not None and self.auto_time_sync_interval_ms < 100:",
+                    "            raise ValueError('auto_time_sync_interval_ms must be None or >= 100')",
+                ])
+        if name in LEN_FIELDS:
+            body.extend(["\n    def __len__(self) -> int:", f"        return len(self.{LEN_FIELDS[name]})"])
+        if name == "PointCloud":
+            body.extend([
+                "\n    def point_count(self) -> int:",
+                "        if self.point_stride <= 0:",
+                "            return 0",
+                "        return len(self.data) // self.point_stride",
+                "\n    def __len__(self) -> int:",
+                "        raise NotImplementedError('PointCloud.__len__ semantics are not specified by the pinned stub; use point_count()')",
+            ])
+        if name == "StatusWord":
+            body.extend([
+                "\n    @property",
+                "    def ext_state_name(self) -> str:",
+                "        return {0: 'Init', 1: 'Ready', 2: 'Enabled', 3: 'Stopped'}.get(self.ext_state, 'Unknown')",
+            ])
+        if name == "ImuData":
+            body.extend([
+                "\n    @staticmethod",
+                "    def raw(header: FrameHeader, angular_velocity: Vector3F64, linear_acceleration: Vector3F64) -> ImuData:",
+                "        return _from_native(ImuData, dict(",
+                "            header=header, orientation=Quaternion(0.0, 0.0, 0.0, 1.0),",
+                "            orientation_covariance=[-1.0] + [0.0] * 8,",
+                "            angular_velocity=angular_velocity, angular_velocity_covariance=[0.0] * 9,",
+                "            linear_acceleration=linear_acceleration, linear_acceleration_covariance=[0.0] * 9))",
+            ])
+        output.append("\n".join(body) + "\n")
+    for name, expression in aliases.items():
+        output.append(f"{name} = {expression}\n")
+        if name != "T":
+            exported.append(name)
+    output.append("__all__ = " + repr(sorted(exported)) + "\n")
+    output.append("# These generated annotations are fixed by the pinned SDK stub.\n"
+                  "_GENERATED_VALUE_TYPES = frozenset(\n"
+                  "    cls for cls in (globals()[name] for name in __all__)\n"
+                  "    if isinstance(cls, type) and issubclass(cls, _Value)\n"
+                  ")\n")
+    return "\n\n".join(output), classes, aliases, functions
+
+
+def example_inventory(root, classes):
+    if root is None:
+        return []
+    inventory = []
+    for path in sorted(Path(root).rglob("*.py")):
+        source = path.read_text()
+        tree = ast.parse(source)
+        imports = {}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module == "wuji_sdk":
+                imports.update({alias.asname or alias.name: alias.name for alias in node.names})
+        module_symbols = {
+            node.attr for node in ast.walk(tree)
+            if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)
+            and node.value.id in {"wuji_sdk", "sdk"}
+            and (node.attr in classes or node.attr == "set_log_level")
+        }
+        called = set()
+        direct = set()
+        method_names = {method for item in classes.values() for method in item["methods"]}
+        sdk_roots = {"wuji_sdk", "manager", "hand", "glove", "pub", "publisher", "sub", "cb", "diag_sub", "session", "recorder"} | set(imports)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+                # Keep actual source expressions; do not claim this shallow
+                # static scan proves type flow or successful example execution.
+                expression = ast.unparse(node.func)
+                if node.func.attr in method_names:
+                    called.add(expression)
+                if expression.split(".", 1)[0] in sdk_roots:
+                    direct.add(expression)
+        inventory.append({"path": str(path.relative_to(root)),
+                          "sha256": hashlib.sha256(source.encode()).hexdigest(),
+                          "sdk_imports": sorted(imports.values()),
+                          "required_top_level_symbols": sorted(set(imports.values()) | module_symbols),
+                          "possible_sdk_method_calls": sorted(called),
+                          "sdk_named_root_calls": sorted(direct)})
+    return inventory
+
+
+def write_inventory(classes, aliases, functions, examples):
+    serializable = {}
+    for name, item in classes.items():
+        serializable[name] = {key: value for key, value in item.items() if key not in {"nodes", "docs"}}
+        serializable[name]["implementation_category"] = classify(item)
+        serializable[name]["hardware_verified"] = False
+    counts = {}
+    for item in serializable.values():
+        category = item["implementation_category"]
+        counts[category] = counts.get(category, 0) + 1
+    report = {
+        "upstream_version": "2026.8.31", "stub_sha256": STUB_SHA256,
+        "scope": "Static API contract and Python value models only; native facade coverage is tracked separately.",
+        "counts": counts, "classes": serializable, "aliases": aliases,
+        "top_level_functions": functions, "examples": examples,
+        "explicit_gaps": [
+            "No class categorized native_facade_required is implemented by this generator.",
+            "The stub references CalibrationResult and JointDiagnostics without defining either class.",
+            "PointCloud.__len__ is declared but its behavior is not specified; the model raises NotImplementedError. point_count() is implemented from documented stride semantics.",
+            "Python model repr strings, mutation rules, numeric widths, and all native PyO3 edge-case conversions have not been checked against a running Linux SDK.",
+            "TransportType has named Python variants only; its native Python integer discriminants are not inferred from C or declaration order.",
+            "TransportType includes Zenoh and CppNative from the pinned native Mac SDK; the vendor Python stub only lists Usb and Udp.",
+            "Enum values for DeviceType/Handedness/HandModel use the pinned C contract; equality and formatting beyond the documented integer-compatible enums remain unverified against PyO3.",
+            "Example call inventory is static and may include unrelated methods sharing an SDK method name; it does not demonstrate hardware execution.",
+        ],
+        "behavior_sources": [
+            "https://docs.wuji.tech/docs/en/wuji-glove/latest/offline-pipeline/",
+            "https://docs.wuji.tech/docs/en/wuji-glove/latest/sdk-data-reference/tactile/",
+            "https://docs.wuji.tech/docs/en/wuji-hand/latest/sdk-reference/",
+        ],
+    }
+    research = ROOT / "research"
+    research.mkdir(exist_ok=True)
+    (research / "api-coverage.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    lines = ["# Python API contract inventory", "", f"Pinned `wuji-sdk==2026.8.31` stub SHA-256: `{STUB_SHA256}`.",
+             "", "This inventory separates data-model coverage from native operation coverage. It is not a claim that all upstream examples run on macOS.",
+             "", "| Category | Classes |", "| --- | ---: |"]
+    lines.extend(f"| {category} | {count} |" for category, count in sorted(counts.items()))
+    lines += ["", f"The stub defines {len(classes)} distinct classes, {len(aliases)} aliases/type variables, and {len(functions)} top-level functions. Repeated extension declarations are merged. The JSON companion records every field, property, method signature, overload, async modifier, source line, and example import/call observation.",
+              "", "## Explicit limitations", ""]
+    lines.extend("- " + gap for gap in report["explicit_gaps"])
+    lines += ["", "## Value-model use", "", "`scripts/generate_api.py` reads the hash-verified wheel without importing it and emits `src/wuji_sdk/_types.py`. Only constructors declared by the official stub are public. Native bridges can call the private `_from_native(ClassOrName, decoded_mapping)` to recursively materialize records. Missing telemetry fields raise errors; no success state, timestamp, measurement, or joint is synthesized. `_to_native(value)` converts modeled values to plain data and is not a wire serializer.",
+              "", "`JointCommand`, `MitParam`, `FrameHeader`, `Quaternion`, `Vector3F64`, `Pose`, `HwVersion`, `ErrorStatus`, `ErrorLogEntry`, `EmfPose`, `EmfPoseArray`, `ConnectOptions`, and `LowPass` have declared constructors. `ImuData.raw` marks orientation as unavailable according to the [official offline-pipeline guide](https://docs.wuji.tech/docs/en/wuji-glove/latest/offline-pipeline/). `PointCloud.point_count` follows the [documented point stride](https://docs.wuji.tech/docs/en/wuji-glove/latest/sdk-data-reference/tactile/).", ""]
+    hand_examples = [item for item in examples if item["path"].startswith("wuji_hand_2/")]
+    if hand_examples:
+        lines += ["## Hand 2 example imports", "", "All required data symbols below are in the generated value module. `SdkManager`, `WujiHand2`, and `set_log_level` require the native-backed package facade. This is an import contract, not proof of running the examples on hardware.",
+                  "", "| Original example | Required top-level SDK names |", "| --- | --- |"]
+        lines += [f"| `{item['path']}` | {', '.join('`' + name + '`' for name in item['required_top_level_symbols'])} |" for item in hand_examples]
+        lines.append("")
+    (research / "api-coverage.md").write_text("\n".join(lines))
+
+
+def record_codec_coverage():
+    # Reading generated constants by literal AST avoids importing wuji_sdk and
+    # therefore avoids executing the manager or any other package entrypoint.
+    path = ROOT / "src" / "wuji_sdk" / "_schema_contract.py"
+    tree = ast.parse(path.read_text())
+    values = {node.targets[0].id: ast.literal_eval(node.value)
+              for node in tree.body if isinstance(node, ast.Assign)
+              and node.targets[0].id in {"SCHEMAS", "UNSUPPORTED", "NAMES", "STATIC_NATIVE_ORDER", "NATIVE_FIXTURE_ORDER"}}
+    path = ROOT / "research" / "api-coverage.json"
+    report = json.loads(path.read_text())
+    report["postcard_codec"] = {
+        "schema_snapshot_sha256": SCHEMAS_SHA256,
+        "supported_schema_ids": sorted(values["SCHEMAS"]),
+        "unsupported_schema_ids_and_reasons": values["UNSUPPORTED"],
+        "native_fixture_verified_schema_ids": list(NATIVE_VERIFIED_IDS),
+        "field_order": "Pinned Python IDL declaration order, with explicit native order for internal realtime and fingertip transport structs. Fixture-listed ids have executed native byte-order proof.",
+        "static_native_field_order": values["STATIC_NATIVE_ORDER"],
+        "native_fixture_field_order": values["NATIVE_FIXTURE_ORDER"],
+        "native_fixture_source": "scripts/probe_device.py -> tests/data/native-codec-fixtures.json; scripts/probe_schema_oracles.py -> tests/data/schema-oracle-fixtures.json",
+        "primitive_format_source": "https://postcard.jamesmunns.com/wire-format",
+        "semantic_conversion_gap": "Native JointDiagnosticsEntry.status_word is uint32; facade must explicitly convert to the Python StatusWord view.",
+    }
+    report["little_endian_codec"] = {
+        "supported_schema_ids": list(range(1, 12)),
+        "rule": "Full-width little-endian numeric and boolean scalars only. Fixed-array helpers accept primitive elements, but the pinned snapshot exposes no top-level fixed-array schema IDs.",
+        "native_fixture_verified": False,
+        "rejected": "All strings, variable arrays, and structs; no padding, field-order or count-prefix assumptions.",
+    }
+    path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    path = ROOT / "research" / "api-coverage.md"
+    with path.open("a") as stream:
+        stream.write("\n## Postcard payload codec\n\n")
+        stream.write(f"`_codec.py` currently encodes/decodes {len(values['SCHEMAS'])} of the 110 native schemas; {len(values['UNSUPPORTED'])} reject with explicit missing-order/type reasons. It handles payloads only. Unknown schemas never fall back to sorted JSON keys.\n\n")
+        stream.write("Native serializer fixtures verify `MitParams`, `EffortLimitVec`, `ControlModeVec`, `JointCommandFrame`, and `JointStateFrame`, including the nested `MitParam`, `JointCommand`, `JointStateEntry`, and `FrameHeader` layouts. The 20 command entries form a fixed array without a length prefix. The receive fixture preserves sparse IDs 0 and 23 and independent joint-count/array-length fields. Remaining object order comes from the matching Python IDL declaration and is provisional. `schema_info()` reports the distinction; `require_verified=True` rejects structs without native fixtures.\n\n")
+        stream.write("Executed native parser fixtures additionally verify `RealtimeStreamFrame`/`RealtimeStreamEntry` (291/290) and `FingertipSensorInfo` (334). The realtime types are internal and absent from the public Python stub; their explicit order is recorded in `NATIVE_FIXTURE_ORDER`. Their distinct-field fixture is also the input to the native virtual `joint_states` pipeline test. Parser fixtures prove that the pinned native parser accepts and interprets the exact bytes; they are not represented as serializer output.\n\n")
+        stream.write("The separate `probe_schema_oracles.py` adds actual native serializer fixtures for `ImuData` (261) and `JointDiagnosticsFrame` (332), including its nested entry (331), and a native parser oracle for every numeric field of `HandCommunicationDiagnostics` (282). Distinct values cover all covariance elements, summary fields, five fingers and five nodes per finger. The installed-wheel suite recompiles the small research adapter and repeats these against the installed native image. `FingertipSensorData` (335) remains provisional: no direct retained native parser/serializer oracle has been established.\n\n")
+        stream.write("Internal schemas 336 `FingertipInfoReq` and 337 `FingertipInfoChunk` use field order recovered from the pinned Linux ARM64 serializer/deserializer, recorded with its hash and addresses in `STATIC_NATIVE_ORDER`. They expose no fabricated public Python classes. Exact-byte static vectors cover their integer widths, order, and chunk length prefix, but are separate from native Mac oracle fixtures. See `research/hand2-semantics.md`.\n\n")
+        stream.write("Primitive vectors follow the [Postcard wire specification](https://postcard.jamesmunns.com/wire-format). Strict decoding checks integer bounds, boolean values, truncation, and trailing bytes. Wire `status_word` integers remain integers in decoded mappings; conversion to the Python `StatusWord` view belongs to the facade.\n")
+        stream.write("\n## Little-endian payload codec\n\n`encode_le`/`decode_le` support numeric and boolean scalar schema IDs 1–11 at their full native width. Internal fixed-array helpers add no length prefix; the pinned schema snapshot currently has no top-level fixed-array IDs. Strings, variable arrays, and every struct reject explicitly because their format-2 layout has not been established. Scalar tests check byte widths, signedness, bounds, and exact payload length; native format-2 fixture verification remains outstanding.\n")
+
+
+def generate_codec_contract(source, path):
+    raw = Path(path).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != SCHEMAS_SHA256:
+        raise ValueError("Unreviewed native schema snapshot")
+    native_schemas = json.loads(raw)
+    _, classes, _, _ = contract(source)
+    explicit_by_name = {entry["name"]: entry for entry in
+                        (*STATIC_NATIVE_ORDER.values(), *NATIVE_FIXTURE_ORDER.values())}
+
+    def name_of(annotation):
+        if not annotation:
+            return None
+        node = ast.parse(annotation, mode="eval").body
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return name_of(node.value)
+        if isinstance(node, ast.Name):
+            return node.id
+        if isinstance(node, ast.Subscript) and ast.unparse(node.value) in {"list", "List", "Optional"}:
+            return name_of(ast.unparse(node.slice))
+        return None
+
+    def descriptor(schema, hint=None):
+        if any(key in schema for key in ("enum", "oneOf", "allOf", "anyOf", "$ref")):
+            raise ValueError("enum/union/reference wire representation is not established")
+        kind = schema.get("type")
+        if kind == "integer":
+            width = schema.get("format")
+            if width not in {"uint8", "uint16", "uint32", "uint64", "int8", "int16", "int32", "int64"}:
+                raise ValueError("missing or unsupported integer width")
+            return (width,)
+        if kind == "number":
+            if schema.get("format") not in {"float", "double"}:
+                raise ValueError("missing floating-point width")
+            return (schema["format"],)
+        if kind in {"boolean", "string"}:
+            return (kind,)
+        if kind == "array":
+            low, high = schema.get("minItems"), schema.get("maxItems")
+            if low != high:
+                raise ValueError("bounded variable-array wire representation is not established")
+            if not isinstance(schema.get("items"), dict):
+                raise ValueError("tuple-array schema is not supported")
+            return ("array", descriptor(schema["items"], hint), low)
+        if kind == "object":
+            name = schema.get("title", "").removeprefix("wuji.") or hint
+            if name in explicit_by_name:
+                fields = explicit_by_name[name]["fields"]
+            elif name in classes:
+                fields = classes[name]["attributes"]
+            else:
+                raise ValueError(f"no pinned declaration order for {name or 'anonymous object'}")
+            properties = schema.get("properties", {})
+            if set(fields) != set(properties):
+                raise ValueError(f"native and Python fields differ for {name}")
+            if set(schema.get("required", [])) != set(properties):
+                raise ValueError(f"optional native fields need an explicit representation: {name}")
+            return ("struct", name, tuple(
+                (field, descriptor(properties[field], name_of(annotation)))
+                for field, annotation in fields.items()
+            ))
+        raise ValueError(f"unsupported native schema type: {kind!r}")
+
+    supported, unsupported, names = {}, {}, {}
+    for key, schema in native_schemas.items():
+        schema_id = int(key)
+        name = schema["title"].removeprefix("wuji.")
+        names[name] = schema_id
+        try:
+            supported[schema_id] = descriptor(schema, name)
+        except ValueError as error:
+            unsupported[schema_id] = str(error)
+    code = '"""Generated schema widths and declaration order; not an SDK or packet codec.\n\n'
+    code += 'Object order comes from the pinned stub or explicit static native evidence, never JSON key order.\n'
+    code += 'Only NATIVE_VERIFIED ids have executed native serializer/parser fixtures checked.\n"""\n'
+    code += f"STUB_SHA256 = {STUB_SHA256!r}\nSCHEMAS_SHA256 = {SCHEMAS_SHA256!r}\n"
+    code += "NATIVE_VERIFIED = frozenset(" + repr(NATIVE_VERIFIED_IDS) + ")\n"
+    code += "STATIC_NATIVE_ORDER = " + pprint.pformat(STATIC_NATIVE_ORDER, width=110, sort_dicts=False) + "\n"
+    code += "NATIVE_FIXTURE_ORDER = " + pprint.pformat(NATIVE_FIXTURE_ORDER, width=110, sort_dicts=False) + "\n"
+    code += "SCHEMAS = " + pprint.pformat(supported, width=110, sort_dicts=True) + "\n"
+    code += "NAMES = " + pprint.pformat(names, width=110, sort_dicts=True) + "\n"
+    code += "UNSUPPORTED = " + pprint.pformat(unsupported, width=110, sort_dicts=True) + "\n"
+    return code
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--stub", type=Path, help="Optional extracted stub; its hash must match the pin")
+    parser.add_argument("--examples-root", type=Path, help="Read-only Python example tree to inventory")
+    parser.add_argument("--schemas", type=Path, help="Optional pinned native JSON-schema snapshot to compile")
+    parser.add_argument("--check", action="store_true", help="Check generated type code without changing files")
+    args = parser.parse_args()
+    source = read_stub(args.stub)
+    code, classes, aliases, functions = generate_types(source)
+    destination = ROOT / "src" / "wuji_sdk" / "_types.py"
+    if args.check:
+        if destination.read_text() != code:
+            raise SystemExit("Generated API value models are stale")
+        if args.schemas and (destination.parent / "_schema_contract.py").read_text() != generate_codec_contract(source, args.schemas):
+            raise SystemExit("Generated schema contract is stale")
+        print("Generated API value models match the pinned stub")
+        return
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(code)
+    if args.schemas:
+        (destination.parent / "_schema_contract.py").write_text(generate_codec_contract(source, args.schemas))
+    examples = example_inventory(args.examples_root, classes)
+    write_inventory(classes, aliases, functions, examples)
+    if args.schemas:
+        record_codec_coverage()
+    print(f"Generated {sum(classify(item) != 'native_facade_required' for item in classes.values())} modeled types; inventoried {len(classes)} classes and {len(examples)} examples")
+
+
+if __name__ == "__main__":
+    main()
