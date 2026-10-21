@@ -17,7 +17,7 @@ def run(*args):
 
 
 def source_hashes():
-    files = [ROOT / name for name in ("pyproject.toml", "setup.py", "README.md")]
+    files = [ROOT / name for name in ("pyproject.toml", "setup.py", "README.md", "LICENSE", "UPSTREAM_LICENSE")]
     files += list((ROOT / "src").rglob("*.py"))
     files += [p for p in (ROOT / "native").iterdir() if p.suffix in (".c", ".h", ".S")]
     return {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(files)}
@@ -38,7 +38,7 @@ def main():
     if stage.exists():
         shutil.rmtree(stage)
     stage.mkdir(parents=True, exist_ok=True)
-    for filename in ["pyproject.toml", "setup.py", "README.md"]:
+    for filename in ["pyproject.toml", "setup.py", "README.md", "LICENSE", "UPSTREAM_LICENSE"]:
         shutil.copy2(ROOT / filename, stage / filename)
     shutil.copytree(ROOT / "src", stage / "src", dirs_exist_ok=True,
                     ignore=shutil.ignore_patterns("__pycache__"))

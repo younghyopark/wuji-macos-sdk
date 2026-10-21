@@ -8,5 +8,5 @@ from ._types import *
 from ._api import *
 from ._backend import NativeCapabilityError, StreamLaggedError
 
-__version__ = "2026.8.31+macos.0.1.dev0"
+__version__ = "2026.8.31+macos.0.1.0"
 __all__ = sorted(set(_types.__all__ + _api.__all__ + ["NativeCapabilityError", "StreamLaggedError"]))

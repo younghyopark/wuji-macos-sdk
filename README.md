@@ -61,7 +61,7 @@ python3 -m venv .venv
 ```
 
 The wheel is written to
-`dist/wuji_macos-0.1.0.dev0-py3-none-macosx_11_0_arm64.whl`.
+`dist/wuji_macos-0.1.0-py3-none-macosx_11_0_arm64.whl`.
 The verifier installs that artifact into `.venv-verify/`, runs an offline suite
 with network and IOKit access denied, then runs a separate native protocol suite
 with only localhost network access. Both restrict filesystem writes to this

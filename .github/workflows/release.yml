@@ -1,0 +1,78 @@
+# Build wuji-macos's wheel and publish it to PyPI when a version tag is pushed.
+#
+# To release: bump the version in pyproject.toml, commit, then tag and push:
+#
+#     git tag -a v0.1.0 -m "wuji-macos 0.1.0" && git push origin main v0.1.0
+#
+# aiowuji pins wuji-macos exactly, so a new version also needs a new aiowuji release to reach
+# `pip install aiowuji`.
+#
+# PyPI gets the wheel only (py3-none-macosx_11_0_arm64): setup.py cannot build without the native
+# libraries, which scripts/build_macos.py derives from the pinned Wuji CLI release on Apple
+# Silicon. Before publishing, scripts/verify_wheel.py installs the wheel and runs the offline and
+# localhost suites against it. Running the workflow by hand (Actions > Release > Run workflow) only
+# builds and verifies the wheel.
+#
+# PyPI accepts it through trusted publishing: pypi.org > wuji-macos > Settings > Publishing has a
+# GitHub publisher for younghyopark/wuji-macos-sdk, workflow release.yml, environment pypi.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wheel:
+    name: wheel
+    runs-on: macos-latest  # Apple Silicon
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check that the tag is the package's version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          version=$(grep -m1 '^version = ' pyproject.toml | cut -d'"' -f2)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME is not pyproject.toml's version $version"
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"  # the build scripts need 3.11+
+
+      - name: Build the wheel
+        run: |
+          python -m pip install -r requirements-build.txt
+          python scripts/build_macos.py
+
+      - name: Verify the wheel
+        run: python scripts/verify_wheel.py
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheel
+          path: dist/*.whl
+
+  publish:
+    name: publish to PyPI
+    needs: wheel
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/wuji-macos/
+    permissions:
+      id-token: write  # trusted publishing
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: wheel
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@release/v1

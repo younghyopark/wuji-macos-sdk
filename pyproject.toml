@@ -4,10 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wuji-macos"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "Experimental Apple Silicon access to pinned WUJI native SDK components"
 readme = "README.md"
 requires-python = ">=3.10"
+license = "MIT"
+# UPSTREAM_LICENSE is Wuji's MIT notice, which must ship with the converted copy of their CLI
+# executable.
+license-files = ["LICENSE", "UPSTREAM_LICENSE"]
 
 [project.urls]
 Repository = "https://github.com/younghyopark/wuji-macos-sdk"

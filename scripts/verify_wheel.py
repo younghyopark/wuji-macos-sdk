@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tomllib
 import zipfile
 
 from fetch_artifacts import fetch
@@ -24,7 +25,8 @@ def main():
             assert hashlib.sha256((ROOT / modification["upstream_snapshot"]).read_bytes()).hexdigest() == expected, path
             expected = modification["sha256"]
         assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == expected, path
-    wheel = ROOT / "dist/wuji_macos-0.1.0.dev0-py3-none-macosx_11_0_arm64.whl"
+    version = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["version"]
+    wheel = ROOT / f"dist/wuji_macos-{version}-py3-none-macosx_11_0_arm64.whl"
     if not wheel.is_file():
         raise SystemExit("Build the wheel with scripts/build_macos.py first")
     with zipfile.ZipFile(wheel) as archive:
@@ -37,6 +39,8 @@ def main():
         assert "wuji_macos/_lib/libwuji_manager_bridge.dylib" in names
         assert "wuji_macos/_lib/libwuji_device_bridge.dylib" in names
         assert "wuji_sdk/__init__.py" in names
+        assert f"wuji_macos-{version}.dist-info/licenses/LICENSE" in names
+        assert f"wuji_macos-{version}.dist-info/licenses/UPSTREAM_LICENSE" in names
         provenance = json.loads(archive.read("wuji_macos/_lib/backend.json"))
         for path, expected in provenance["source_sha256"].items():
             assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == expected, f"Rebuild changed source: {path}"
