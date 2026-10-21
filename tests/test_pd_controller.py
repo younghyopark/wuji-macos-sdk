@@ -39,6 +39,16 @@ def healthy_diagnostic(state=2, code=0, status_bits=0):
                        for nid in NIDS]}
 
 
+def sleep_duration(seconds):
+    """Median time a sleep of `seconds` takes on this host."""
+    samples = []
+    for _ in range(5):
+        start = time.perf_counter()
+        time.sleep(seconds)
+        samples.append(time.perf_counter() - start)
+    return sorted(samples)[2]
+
+
 class DecodeTests(unittest.TestCase):
     def test_matches_python_codec_for_shuffled_full_frame(self):
         rng = random.Random(7)
@@ -174,7 +184,10 @@ class LoopTests(unittest.TestCase):
         q = [0.01 * j for j in range(20)]
         controller = self.run_loop(q, seconds=0.1)
         self.assertIsNone(controller.error)
-        self.assertGreater(len(controller._sender.sent), 40)
+        # The loop sleeps to each deadline and never sends a catch-up burst, so it ticks no
+        # faster than this host sleeps: a 1 ms sleep takes about 4.5 ms on GitHub's macOS VMs.
+        period = 1 / controller.rate_hz
+        self.assertGreater(len(controller._sender.sent), 0.4 * 0.1 / max(period, sleep_duration(period)))
         self.assertEqual(controller._sender.sent[-1], ([f32(v) for v in q], [0.0] * 20, [0.0] * 20))
         self.assertEqual(controller.hand.calls, [])
 
